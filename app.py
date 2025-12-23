@@ -1,9 +1,9 @@
 import pandas as pd
 import streamlit as st
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-
+# =========================
+# CLASSE DE REBALANCEAMENTO
+# =========================
 class PortfolioRebalancer:
     def __init__(self, df, pesos, aporte_mensal=2500):
         self.aporte_mensal = aporte_mensal
@@ -28,9 +28,9 @@ class PortfolioRebalancer:
 
         base = pd.DataFrame({
             'Categoria': [
-                'Renda Fixa', 'Renda Fixa',
-                'Ações', 'Ações', 'Ações', 'Ações',
-                'Exterior', 'Exterior'
+                'Renda Fixa','Renda Fixa',
+                'Ações','Ações','Ações','Ações',
+                'Exterior','Exterior'
             ],
             'Subcategoria': list(self.pesos.keys()),
             '% Alvo Subcat': list(self.pesos.values())
@@ -74,63 +74,32 @@ class PortfolioRebalancer:
         cols[4].metric("Top 3 Concentração", f"{top3['% Atual'].sum():.2%}")
 
     # =========================
-    # GRÁFICOS
+    # GRÁFICOS NATIVOS
     # =========================
     def graficos(self):
-        fig = make_subplots(
-            rows=2, cols=2,
-            subplot_titles=[
-                "Distribuição da Carteira",
-                "Aporte por Ativo",
-                "Resultado por Ativo (R$)",
-                "Rentabilidade x Peso"
-            ],
-            specs=[[{"type": "pie"}, {"type": "bar"}],
-                   [{"type": "bar"}, {"type": "scatter"}]]
-        )
+        st.subheader("Distribuição da Carteira")
+        st.bar_chart(self.data.set_index('Subcategoria')['Patrimônio Atual'])
 
-        fig.add_trace(
-            go.Pie(labels=self.data['Subcategoria'], values=self.data['Patrimônio Atual'], hole=0.45),
-            1, 1
-        )
-        fig.add_trace(
-            go.Bar(x=self.data['Subcategoria'], y=self.data['Aporte'], marker_color=self.data['Aporte']),
-            1, 2
-        )
+        st.subheader("Aporte por Ativo")
+        st.bar_chart(self.data.set_index('Subcategoria')['Aporte'])
+
         if 'Resultado' in self.data:
-            fig.add_trace(
-                go.Bar(x=self.data['Subcategoria'], y=self.data['Resultado'], marker_color=self.data['Resultado']),
-                2, 1
-            )
+            st.subheader("Resultado por Ativo (R$)")
+            st.bar_chart(self.data.set_index('Subcategoria')['Resultado'])
+
         if 'Rentabilidade' in self.data:
-            fig.add_trace(
-                go.Scatter(
-                    x=self.data['% Atual'],
-                    y=self.data['Rentabilidade'],
-                    mode='markers+text',
-                    text=self.data['Subcategoria'],
-                    textposition="top center"
-                ),
-                2, 2
-            )
+            st.subheader("Rentabilidade x Peso")
+            st.line_chart(self.data.set_index('Subcategoria')[['% Atual','Rentabilidade']])
 
-        fig.update_layout(height=850, showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
-
+    # =========================
+    # TABELA SIMPLES
+    # =========================
     def tabela(self):
-        st.dataframe(
-            self.data.style
-                .background_gradient(subset=['Aporte'], cmap='Greens')
-                .background_gradient(subset=['Gap'], cmap='Reds')
-                .background_gradient(subset=['Rentabilidade'], cmap='Blues', axis=0)
-                if 'Rentabilidade' in self.data else self.data,
-            use_container_width=True,
-            height=420
-        )
+        st.dataframe(self.data)
 
 
 # =========================
-# APP
+# APP STREAMLIT
 # =========================
 st.set_page_config("Rebalanceamento Profissional", layout="wide")
 st.title("📊 Rebalanceamento com Performance Real")
